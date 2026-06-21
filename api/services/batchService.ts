@@ -29,19 +29,20 @@ export function pickupBatch(batchId: string): { pickup: PickupRecord; transactio
   const items = db.prepare('SELECT * FROM order_batch_items WHERE batch_id = ?').all(batchId) as any[]
   const goodsAmount = items.reduce((sum: number, item: any) => sum + item.subtotal, 0)
 
-  const calc = calculateOverdueFee(batch.arrived_at)
-  const overdueFee = calc.totalFee
-
   const result = db.transaction(() => {
     db.prepare(
       "UPDATE order_batches SET status = 'picked', picked_at = datetime('now','localtime') WHERE id = ?"
     ).run(batchId)
 
+    const updatedBatch = db.prepare('SELECT picked_at FROM order_batches WHERE id = ?').get(batchId) as any
+    const calc = calculateOverdueFee(batch.arrived_at, updatedBatch.picked_at)
+    const overdueFee = calc.totalFee
+
     const pickupId = uuidv4()
     db.prepare(
       `INSERT INTO pickup_records (id, order_id, batch_id, picked_at, goods_amount, overdue_fee, total_amount)
-       VALUES (?, ?, ?, datetime('now','localtime'), ?, ?, ?)`
-    ).run(pickupId, batch.order_id, batchId, goodsAmount, overdueFee, goodsAmount + overdueFee)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).run(pickupId, batch.order_id, batchId, updatedBatch.picked_at, goodsAmount, overdueFee, goodsAmount + overdueFee)
 
     const goodsTxnId = uuidv4()
     db.prepare(
@@ -61,16 +62,7 @@ export function pickupBatch(batchId: string): { pickup: PickupRecord; transactio
     const allPicked = allBatches.every((b: any) => b.status === 'picked')
     const newStatus = allPicked ? 'completed' : 'partial_picked'
 
-    const totalServiceFee = allPicked
-      ? (() => {
-          const pickedBatches = db.prepare('SELECT id, arrived_at, picked_at FROM order_batches WHERE order_id = ?').all(batch.order_id) as any[]
-          return pickedBatches.reduce((sum: number, b: any) => {
-            const calcTime = b.picked_at || undefined
-            const c = calculateOverdueFee(b.arrived_at, calcTime)
-            return sum + c.totalFee
-          }, 0)
-        })()
-      : order.total_service_fee + overdueFee
+    const totalServiceFee = order.total_service_fee + overdueFee
 
     db.prepare(
       "UPDATE orders SET status = ?, total_service_fee = ?, updated_at = datetime('now','localtime') WHERE id = ?"

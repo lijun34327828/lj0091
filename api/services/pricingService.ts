@@ -107,11 +107,12 @@ export function calculateBatchOverdue(batchId: string): OverdueCalculation {
 export function calculateOrderOverdue(orderId: string): OverdueCalculation[] {
   const db = getDb()
   const batches = db.prepare(
-    "SELECT * FROM order_batches WHERE order_id = ? AND status != 'picked'"
+    "SELECT * FROM order_batches WHERE order_id = ? ORDER BY batch_no ASC"
   ).all(orderId) as any[]
 
   return batches.map(batch => {
-    const calc = calculateOverdueFee(batch.arrived_at)
+    const calcTime = batch.picked_at || undefined
+    const calc = calculateOverdueFee(batch.arrived_at, calcTime)
     return {
       batchId: batch.id,
       batchNo: batch.batch_no,

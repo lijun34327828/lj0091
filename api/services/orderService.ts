@@ -43,7 +43,7 @@ export function getOrderDetail(id: string): OrderDetail {
   })
 
   const overdueCalculations = calculateOrderOverdue(id)
-  const totalServiceFee = overdueCalculations.reduce((sum, c) => sum + c.totalFee, 0)
+  const totalServiceFee = order.total_service_fee
 
   return {
     order,

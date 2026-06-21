@@ -7,6 +7,7 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import AdminTransactions from "@/pages/AdminTransactions";
 import AdminLocked from "@/pages/AdminLocked";
 import AdminPricing from "@/pages/AdminPricing";
+import PromotionCalculator from "@/pages/PromotionCalculator";
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="/admin/transactions" element={<AdminTransactions />} />
         <Route path="/admin/locked" element={<AdminLocked />} />
         <Route path="/admin/pricing" element={<AdminPricing />} />
+        <Route path="/3874" element={<PromotionCalculator />} />
       </Routes>
     </Router>
   );
